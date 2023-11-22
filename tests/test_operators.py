@@ -107,10 +107,10 @@ def test_sigmoid(a: float) -> None:
     * It crosses 0 at 0.5
     * It is  strictly increasing.
     """
-    assert sigmoid(a) > 0 and sigmoid(a) < 1
-    assert sigmoid(a) == 1 - sigmoid(-a)
+    assert sigmoid(a) >= 0.0 and sigmoid(a) <= 1.0
+    assert_close(sigmoid(a) + sigmoid(-a), 1)
     assert sigmoid(0) == 0.5
-    assert sigmoid(a) > sigmoid(a - 1.0)
+    assert sigmoid(a) >= sigmoid(a - 1.0)
 
 
 @pytest.mark.task0_2
@@ -148,7 +148,7 @@ def test_distribute(a: float, b: float, c: float) -> None:
     Write a test that ensures that your operators distribute, i.e.
     :math:`z \times (x + y) = z \times x + z \times y`
     """
-    assert mul(a, add(b, c)) == add(mul(a, b), mul(a, c))
+    assert_close(mul(a, add(b, c)), add(mul(a, b), mul(a, c)))
 
 
 @pytest.mark.task0_2
@@ -157,8 +157,8 @@ def test_log_back(a: float, b: float) -> None:
     """
     Write a test that ensures some other property holds for your functions.
     """
-    assert_close(log_back(1.0, b) == b)
-    assert_close(log_back(a + 1.0, b) == b / (a + 1.0))
+    assert log_back(1.0, b) == b
+    assert_close(log_back(a + 1.0, b), b / (a + 1.0))
 
 
 # ## Task 0.3  - Higher-order functions

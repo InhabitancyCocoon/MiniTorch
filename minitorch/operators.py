@@ -71,7 +71,7 @@ def sigmoid(x: float) -> float:
     if x >= 0:
         return 1 / (1 + exp(-x))
     else:
-        return 1 / (1 + exp(x))
+        return exp(x) / (1 + exp(x))
 
 
 def relu(x: float) -> float:
