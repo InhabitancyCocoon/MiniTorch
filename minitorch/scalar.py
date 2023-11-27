@@ -107,7 +107,7 @@ class Scalar:
         return EQ.apply(self, b)
 
     def __sub__(self, b: ScalarLike) -> Scalar:
-        return Neg.apply(Add.apply(Neg.apply(self), b))
+        return Add.apply(self, -b)
 
     def __neg__(self) -> Scalar:
         return Neg.apply(self)
