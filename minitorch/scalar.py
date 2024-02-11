@@ -141,6 +141,7 @@ class Scalar:
             x: value to be accumulated
         """
         assert self.is_leaf(), "Only leaf variables can have derivatives."
+        # print('accumulate:', x)
         if self.derivative is None:
             self.derivative = 0.0
         self.derivative += x
@@ -159,6 +160,7 @@ class Scalar:
 
     def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]:
         h = self.history
+        # print(h.ctx, h.last_fn)
         assert h is not None
         assert h.last_fn is not None
         assert h.ctx is not None
@@ -189,7 +191,7 @@ def derivative_check(f: Any, *scalars: Scalar) -> None:
     """
     out = f(*scalars)
     out.backward()
-
+    # print('scalars: ', scalars, 'output: ', out)
     err_msg = """
 Derivative check at arguments f(%s) and received derivative f'=%f for argument %d,
 but was expecting derivative f'=%f from central difference."""

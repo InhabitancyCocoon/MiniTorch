@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Tuple
-
 from typing_extensions import Protocol
 
 # ## Task 1.1
@@ -70,8 +69,22 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError("Need to implement for Task 1.4")
+    s = []
+    cur = variable
+    s.append(cur)
+    vis = set()
+    topological_order = []
+    while s:
+        for pref in cur.parents:
+            if pref.unique_id not in vis:
+                s.append(pref)
+        if cur == s[-1]:
+            s.pop()
+            topological_order.append(cur)
+            vis.add(cur.unique_id)
+        else:
+            cur = s[-1]
+    return topological_order
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
@@ -85,8 +98,12 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError("Need to implement for Task 1.4")
+    if variable.is_leaf():
+        variable.accumulate_derivative(deriv)
+        return
+    back = variable.chain_rule(d_output=deriv)
+    for pref, dev in back:
+        backpropagate(pref, dev)
 
 
 @dataclass
