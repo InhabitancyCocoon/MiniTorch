@@ -85,8 +85,14 @@ def broadcast_index(
     Returns:
         None
     """
-    # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    m, n = len(big_shape), len(shape)
+    offset = m - n
+    for d in range(offset, m):
+        d_big_dim, d_small_dim = big_shape[d], shape[d - offset]
+        if d_small_dim == 1:
+            out_index[d - offset] = 0
+        else:
+            out_index[d- offset] = big_index[d]
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
