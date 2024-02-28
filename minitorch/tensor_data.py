@@ -92,7 +92,7 @@ def broadcast_index(
         if d_small_dim == 1:
             out_index[d - offset] = 0
         else:
-            out_index[d- offset] = big_index[d]
+            out_index[d - offset] = big_index[d]
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
