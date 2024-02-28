@@ -197,10 +197,8 @@ class EQ(ScalarFunction):
 
     @staticmethod
     def forward(ctx: Context, a: float, b: float) -> float:
-        ctx.save_for_backward(a, b)
         return operators.eq(a, b)
 
     @staticmethod
     def backward(ctx: Context, d_output: float) -> Tuple[float, float]:
-        a, b = ctx.saved_values
-        return 0, 0 if not operators.eq(a, b) else a, b
+        return 0, 0
