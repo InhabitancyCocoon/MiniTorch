@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Iterable, Tuple
 from typing_extensions import Protocol
 
 # ## Task 1.1
@@ -101,9 +101,10 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
     if variable.is_leaf():
         variable.accumulate_derivative(deriv)
         return
-    back = variable.chain_rule(d_output=deriv)
-    for pref, dev in back:
-        backpropagate(pref, dev)
+    if not variable.is_constant():
+        back = variable.chain_rule(d_output=deriv)
+        for pref, dev in back:
+            backpropagate(pref, dev)
 
 
 @dataclass

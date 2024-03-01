@@ -54,11 +54,11 @@ class Module:
         def collect(m: Module, pref: str) -> None:
             for name, parameter in m._parameters.items():
                 named_parameters_list.append((pref + name, parameter))
-            
-            for name, descendent_module in m._modules.items():
-                collect(descendent_module, pref + name + '.')
 
-        collect(self, '')
+            for name, descendent_module in m._modules.items():
+                collect(descendent_module, pref + name + ".")
+
+        collect(self, "")
         return named_parameters_list
 
     def parameters(self) -> Sequence[Parameter]:

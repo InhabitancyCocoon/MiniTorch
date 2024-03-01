@@ -266,12 +266,11 @@ def tensor_map(
     ) -> None:
         out_index = np.zeros_like(out_shape)
         in_index = np.zeros_like(in_shape)
-        for i in range(out.size):    
+        for i in range(out.size):
             to_index(i, out_shape, out_index)
             broadcast_index(out_index, out_shape, in_shape, in_index)
             j = index_to_position(in_index, in_strides)
             out[i] = fn(in_storage[j])
-
 
     return _map
 
@@ -326,7 +325,6 @@ def tensor_zip(
             b_pos = index_to_position(b_index, b_strides)
             out[i] = fn(a_storage[a_pos], b_storage[b_pos])
 
-
     return _zip
 
 
@@ -362,7 +360,7 @@ def tensor_reduce(
             for j in range(a_shape[reduce_dim]):
                 a_index[reduce_dim] = j
                 a_pos = index_to_position(a_index, a_strides)
-                out[i] = fn(out[i], a_storage[a_pos])     
+                out[i] = fn(out[i], a_storage[a_pos])
 
     return _reduce
 
