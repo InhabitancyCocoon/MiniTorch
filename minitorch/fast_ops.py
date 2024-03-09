@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from typing import Callable, Optional
 
     from .tensor import Tensor
-    from .tensor_data import Index, Shape, Storage, Strides
+    from .tensor_data import Index, Shape, Storage, Strides, OutIndex
 
 # TIP: Use `NUMBA_DISABLE_JIT=1 pytest tests/ -m task3_1` to run these tests without JIT.
 
@@ -28,6 +28,13 @@ if TYPE_CHECKING:
 to_index = njit(inline="always")(to_index)
 index_to_position = njit(inline="always")(index_to_position)
 broadcast_index = njit(inline="always")(broadcast_index)
+
+
+@njit
+def to_index_by_strides(ordinal: int, strides: Strides, out_index: OutIndex):
+    for k in range(len(strides)):
+        out_index[k] = ordinal // strides[k]
+        ordinal = ordinal % strides[k]
 
 
 class FastOps(TensorOps):
@@ -159,8 +166,23 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        aligned = (
+            len(out_strides) == len(in_strides)
+            and len(in_strides) == len(out_strides)
+            and np.all(out_strides == in_strides)
+            and np.all(out_shape == in_shape)
+        )
+        if aligned:
+            for out_pos in prange(out.size):
+                out[out_pos] = fn(in_storage[out_pos])
+        else:
+            for out_pos in prange(out.size):
+                out_index = np.empty_like(out_shape, dtype=np.int32)
+                in_index = np.empty_like(in_shape, dtype=np.int32)
+                to_index_by_strides(out_pos, out_strides, out_index)
+                broadcast_index(out_index, out_shape, in_shape, in_index)
+                in_pos = index_to_position(in_index, in_strides)
+                out[out_pos] = fn(in_storage[in_pos])
 
     return njit(parallel=True)(_map)  # type: ignore
 
@@ -198,8 +220,30 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        aligned = (
+            len(out_strides) == len(a_strides)
+            and len(out_strides) == len(a_strides)
+            and np.all(out_strides == a_strides)
+            and np.all(out_shape == a_shape)
+            and len(out_strides) == len(b_strides)
+            and len(out_strides) == len(b_strides)
+            and np.all(out_strides == b_strides)
+            and np.all(out_shape == b_shape)
+        )
+        if aligned:
+            for out_pos in prange(out.size):
+                out[out_pos] = fn(a_storage[out_pos], b_storage[out_pos])
+        else:
+            for out_pos in prange(out.size):
+                out_index = np.empty_like(out_shape, dtype=np.int32)
+                a_index = np.empty_like(a_shape, dtype=np.int32)
+                b_index = np.empty_like(b_shape, dtype=np.int32)
+                to_index_by_strides(out_pos, out_strides, out_index)
+                broadcast_index(out_index, out_shape, a_shape, a_index)
+                broadcast_index(out_index, out_shape, b_shape, b_index)
+                a_pos = index_to_position(a_index, a_strides)
+                b_pos = index_to_position(b_index, b_strides)
+                out[out_pos] = fn(a_storage[a_pos], b_storage[b_pos])
 
     return njit(parallel=True)(_zip)  # type: ignore
 
@@ -232,8 +276,15 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        for out_pos in prange(out.size):
+            out_index = np.empty_like(out_shape, dtype=np.int32)
+            a_index = np.empty_like(out_shape, dtype=np.int32)
+            to_index_by_strides(out_pos, out_strides, out_index)
+            a_index[:] = out_index
+            for reduce_dim_idx in range(a_shape[reduce_dim]):
+                a_index[reduce_dim] = reduce_dim_idx
+                a_pos = index_to_position(a_index, a_strides)
+                out[out_pos] = fn(out[out_pos], a_storage[a_pos])
 
     return njit(parallel=True)(_reduce)  # type: ignore
 

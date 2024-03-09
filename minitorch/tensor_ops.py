@@ -266,11 +266,11 @@ def tensor_map(
     ) -> None:
         out_index = np.empty_like(out_shape, dtype=np.int32)
         in_index = np.empty_like(in_shape, dtype=np.int32)
-        for i in range(out.size):
-            to_index(i, out_shape, out_index)
+        for out_pos in range(out.size):
+            to_index(out_pos, out_shape, out_index)
             broadcast_index(out_index, out_shape, in_shape, in_index)
-            j = index_to_position(in_index, in_strides)
-            out[i] = fn(in_storage[j])
+            in_pos = index_to_position(in_index, in_strides)
+            out[out_pos] = fn(in_storage[in_pos])
 
     return _map
 
@@ -317,13 +317,13 @@ def tensor_zip(
         out_index = np.empty_like(out_shape, dtype=np.int32)
         a_index = np.empty_like(a_shape, dtype=np.int32)
         b_index = np.empty_like(b_shape, dtype=np.int32)
-        for i in range(out.size):
-            to_index(i, out_shape, out_index)
+        for out_pos in range(out.size):
+            to_index(out_pos, out_shape, out_index)
             broadcast_index(out_index, out_shape, a_shape, a_index)
             broadcast_index(out_index, out_shape, b_shape, b_index)
             a_pos = index_to_position(a_index, a_strides)
             b_pos = index_to_position(b_index, b_strides)
-            out[i] = fn(a_storage[a_pos], b_storage[b_pos])
+            out[out_pos] = fn(a_storage[a_pos], b_storage[b_pos])
 
     return _zip
 
@@ -355,13 +355,13 @@ def tensor_reduce(
     ) -> None:
         out_index = np.empty_like(out_shape, dtype=np.int32)
         a_index = np.empty_like(out_shape, dtype=np.int32)
-        for i in range(out.size):
-            to_index(i, out_shape, out_index)
+        for out_pos in range(out.size):
+            to_index(out_pos, out_shape, out_index)
             a_index[:] = out_index
             for j in range(a_shape[reduce_dim]):
                 a_index[reduce_dim] = j
                 a_pos = index_to_position(a_index, a_strides)
-                out[i] = fn(out[i], a_storage[a_pos])
+                out[out_pos] = fn(out[out_pos], a_storage[a_pos])
 
     return _reduce
 
