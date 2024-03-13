@@ -333,8 +333,24 @@ def _tensor_matrix_multiply(
     a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
     b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
 
-    # TODO: Implement for Task 3.2.
-    raise NotImplementedError("Need to implement for Task 3.2")
+    assert a_shape[-1] == b_shape[-2], 'dim does not match!'
+
+    for out_pos in prange(out.size):
+        out_index = np.empty_like(out_shape)
+        to_index_by_strides(out_pos, out_strides, out_index)
+        a_index = np.empty_like(a_shape)
+        b_index = np.empty_like(b_shape)
+        broadcast_index(out_index, out_shape, a_shape, a_index)
+        broadcast_index(out_index, out_shape, b_shape, b_index)
+
+        target_dim = a_shape[-1]
+
+        for inner_pos in range(target_dim):
+            a_index[-1] = inner_pos
+            b_index[-2] = inner_pos
+            a_pos = index_to_position(a_index, a_strides)
+            b_pos = index_to_position(b_index, b_strides)
+            out[out_pos] += a_storage[a_pos] * b_storage[b_pos]
 
 
 tensor_matrix_multiply = njit(parallel=True, fastmath=True)(_tensor_matrix_multiply)

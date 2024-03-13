@@ -49,6 +49,13 @@ Parallel structure is already optimal.
 Allocation hoisting:
 No allocation hoisting found
 None
+
+
+
+
+
+
+
 ZIP
 
 ================================================================================
@@ -110,6 +117,13 @@ Parallel structure is already optimal.
 Allocation hoisting:
 No allocation hoisting found
 None
+
+
+
+
+
+
+
 REDUCE
 
 ================================================================================
@@ -165,6 +179,101 @@ Parallel region 0:
 
 Parallel region 0 (loop #11) had 0 loop(s) fused and 1 loop(s) serialized as
 part of the larger parallel loop (#11).
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+---------------------------Loop invariant code motion---------------------------
+Allocation hoisting:
+No allocation hoisting found
+None
+
+
+
+
+
+
+
+MATRIX MULTIPLY
+
+================================================================================
+ Parallel Accelerator Optimizing:  Function _tensor_matrix_multiply,
+d:\vscodeworkspace\minitorch\minitorch\fast_ops.py (292)
+================================================================================
+
+
+Parallel loop listing for  Function _tensor_matrix_multiply, d:\vscodeworkspace\minitorch\minitorch\fast_ops.py (292)
+-------------------------------------------------------------------|loop #ID
+def _tensor_matrix_multiply(                                       |
+    out: Storage,                                                  |
+    out_shape: Shape,                                              |
+    out_strides: Strides,                                          |
+    a_storage: Storage,                                            |
+    a_shape: Shape,                                                |
+    a_strides: Strides,                                            |
+    b_storage: Storage,                                            |
+    b_shape: Shape,                                                |
+    b_strides: Strides,                                            |
+) -> None:                                                         |
+    """                                                            |
+    NUMBA tensor matrix multiply function.                         |
+                                                                   |
+    Should work for any tensor shapes that broadcast as long as    |
+                                                                   |
+    ```                                                            |
+    assert a_shape[-1] == b_shape[-2]                              |
+    ```                                                            |
+                                                                   |
+    Optimizations:                                                 |
+                                                                   |
+    * Outer loop in parallel                                       |
+    * No index buffers or function calls                           |
+    * Inner loop should have no global writes, 1 multiply.         |
+                                                                   |
+                                                                   |
+    Args:                                                          |
+        out (Storage): storage for `out` tensor                    |
+        out_shape (Shape): shape for `out` tensor                  |
+        out_strides (Strides): strides for `out` tensor            |
+        a_storage (Storage): storage for `a` tensor                |
+        a_shape (Shape): shape for `a` tensor                      |
+        a_strides (Strides): strides for `a` tensor                |
+        b_storage (Storage): storage for `b` tensor                |
+        b_shape (Shape): shape for `b` tensor                      |
+        b_strides (Strides): strides for `b` tensor                |
+                                                                   |
+    Returns:                                                       |
+        None : Fills in `out`                                      |
+    """                                                            |
+    a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0         |
+    b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0         |
+                                                                   |
+    assert a_shape[-1] == b_shape[-2], 'dim does not match!'       |
+                                                                   |
+    for out_pos in prange(out.size):-------------------------------| #0
+        out_index = np.empty_like(out_shape)                       |
+        to_index_by_strides(out_pos, out_strides, out_index)       |
+        a_index = np.empty_like(a_shape)                           |
+        b_index = np.empty_like(b_shape)                           |
+        broadcast_index(out_index, out_shape, a_shape, a_index)    |
+        broadcast_index(out_index, out_shape, b_shape, b_index)    |
+                                                                   |
+        target_dim = a_shape[-1]                                   |
+                                                                   |
+        for inner_pos in range(target_dim):                        |
+            a_index[-1] = inner_pos                                |
+            b_index[-2] = inner_pos                                |
+            a_pos = index_to_position(a_index, a_strides)          |
+            b_pos = index_to_position(b_index, b_strides)          |
+            out[out_pos] += a_storage[a_pos] * b_storage[b_pos]    |
+--------------------------------- Fusing loops ---------------------------------
+Attempting fusion of parallel loops (combines loops with similar properties)...
+Following the attempted fusion of parallel for-loops there are 1 parallel for-
+loop(s) (originating from loops labelled: #0).
+--------------------------------------------------------------------------------
+----------------------------- Before Optimisation ------------------------------
+--------------------------------------------------------------------------------
+------------------------------ After Optimisation ------------------------------
+Parallel structure is already optimal.
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
