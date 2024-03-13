@@ -11,6 +11,7 @@ from .tensor_data import (
     index_to_position,
     shape_broadcast,
     to_index,
+    to_index_by_strides,
 )
 from .tensor_ops import MapProto, TensorOps
 
@@ -28,13 +29,7 @@ if TYPE_CHECKING:
 to_index = njit(inline="always")(to_index)
 index_to_position = njit(inline="always")(index_to_position)
 broadcast_index = njit(inline="always")(broadcast_index)
-
-
-@njit
-def to_index_by_strides(ordinal: int, strides: Strides, out_index: OutIndex):
-    for k in range(len(strides)):
-        out_index[k] = ordinal // strides[k]
-        ordinal = ordinal % strides[k]
+to_index_by_strides = njit(inline="always")(to_index_by_strides)
 
 
 class FastOps(TensorOps):
@@ -333,7 +328,7 @@ def _tensor_matrix_multiply(
     a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
     b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
 
-    assert a_shape[-1] == b_shape[-2], 'dim does not match!'
+    assert a_shape[-1] == b_shape[-2], "dim does not match!"
 
     for out_pos in prange(out.size):
         out_index = np.empty_like(out_shape)

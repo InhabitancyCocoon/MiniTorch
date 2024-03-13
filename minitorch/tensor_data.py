@@ -48,6 +48,12 @@ def index_to_position(index: Index, strides: Strides) -> int:
     return int(pos)
 
 
+def to_index_by_strides(ordinal: int, strides: Strides, out_index: OutIndex):
+    for k in range(len(strides)):
+        out_index[k] = ordinal // strides[k]
+        ordinal = int(ordinal % strides[k])
+
+
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
     """
     Convert an `ordinal` to an index in the `shape`.
