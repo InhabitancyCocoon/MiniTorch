@@ -2,6 +2,7 @@ import random
 from typing import Callable, Dict, Iterable, List, Tuple
 
 import numba
+from numba import cuda
 import pytest
 from hypothesis import given, settings
 from hypothesis.strategies import DataObject, data, integers, lists, permutations

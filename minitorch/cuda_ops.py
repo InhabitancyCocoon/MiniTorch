@@ -2,6 +2,7 @@ from typing import Callable, Optional
 
 import numba
 from numba import cuda
+import numpy as np
 
 from .tensor import Tensor
 from .tensor_data import (
@@ -14,6 +15,7 @@ from .tensor_data import (
     index_to_position,
     shape_broadcast,
     to_index,
+    to_index_by_strides
 )
 from .tensor_ops import MapProto, TensorOps
 
@@ -24,6 +26,7 @@ from .tensor_ops import MapProto, TensorOps
 to_index = cuda.jit(device=True)(to_index)
 index_to_position = cuda.jit(device=True)(index_to_position)
 broadcast_index = cuda.jit(device=True)(broadcast_index)
+to_index_by_strides = cuda.jit(device=True)(to_index_by_strides)
 
 THREADS_PER_BLOCK = 32
 
@@ -149,12 +152,16 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-
+        out_pos = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+        if out_pos >= out_size:
+            return
         out_index = cuda.local.array(MAX_DIMS, numba.int32)
         in_index = cuda.local.array(MAX_DIMS, numba.int32)
-        i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
-        # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+        to_index_by_strides(out_pos, out_strides, out_index)
+        broadcast_index(out_index, out_shape, in_shape, in_index)
+        in_pos = index_to_position(in_index, in_strides)
+        out[out_pos] = fn(in_storage[in_pos])
+            
 
     return cuda.jit()(_map)  # type: ignore
 
@@ -190,13 +197,18 @@ def tensor_zip(
         b_strides: Strides,
     ) -> None:
 
+        out_pos = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+        if out_pos >= out_size:
+            return
         out_index = cuda.local.array(MAX_DIMS, numba.int32)
         a_index = cuda.local.array(MAX_DIMS, numba.int32)
         b_index = cuda.local.array(MAX_DIMS, numba.int32)
-        i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
-
-        # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+        to_index_by_strides(out_pos, out_strides, out_index)
+        broadcast_index(out_index, out_shape, a_shape, a_index)
+        broadcast_index(out_index, out_shape, b_shape, b_index)
+        a_pos = index_to_position(a_index, a_strides)
+        b_pos = index_to_position(b_index, b_strides)
+        out[out_pos] = fn(a_storage[a_pos], b_storage[b_pos])
 
     return cuda.jit()(_zip)  # type: ignore
 
@@ -223,13 +235,10 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
 
     """
     BLOCK_DIM = 32
-
-    cache = cuda.shared.array(BLOCK_DIM, numba.float64)
-    i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
-    pos = cuda.threadIdx.x
-
-    # TODO: Implement for Task 3.3.
-    raise NotImplementedError("Need to implement for Task 3.3")
+    a_pos = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+    if a_pos >= size:
+        return
+    cuda.atomic.add(out, a_pos // BLOCK_DIM, a[a_pos])
 
 
 jit_sum_practice = cuda.jit()(_sum_practice)
@@ -275,11 +284,22 @@ def tensor_reduce(
         BLOCK_DIM = 1024
         cache = cuda.shared.array(BLOCK_DIM, numba.float64)
         out_index = cuda.local.array(MAX_DIMS, numba.int32)
-        out_pos = cuda.blockIdx.x
-        pos = cuda.threadIdx.x
 
-        # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+        out_pos = cuda.blockIdx.x
+        cache_pos = cuda.threadIdx.x
+        if out_pos >= out_size or cache_pos >= a_shape[reduce_dim]:
+            return
+        
+        to_index_by_strides(out_pos, out_strides, out_index)
+        out_index[reduce_dim] = cache_pos
+        a_pos = index_to_position(out_index, a_strides)
+        
+        cache[cache_pos] = a_storage[a_pos]
+        cuda.syncthreads()
+
+        for thread_idx in range(a_shape[reduce_dim]):
+            reduce_value = fn(reduce_value, cache[thread_idx])
+        out[out_pos] = reduce_value
 
     return cuda.jit()(_reduce)  # type: ignore
 
@@ -315,8 +335,8 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
         size (int): size of the square
     """
     BLOCK_DIM = 32
-    # TODO: Implement for Task 3.3.
-    raise NotImplementedError("Need to implement for Task 3.3")
+    # TODO: Implement for Task 3.4.
+    raise NotImplementedError("Need to implement for Task 3.4")
 
 
 jit_mm_practice = cuda.jit()(_mm_practice)

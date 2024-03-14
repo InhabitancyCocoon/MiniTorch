@@ -189,7 +189,7 @@ class LT(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
-        return tensor(0), tensor(0)
+        return grad_output * 0.0, grad_output * 0.0
 
 
 class EQ(Function):
@@ -199,7 +199,7 @@ class EQ(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
-        return tensor(0), tensor(0)
+        return grad_output * 0.0, grad_output * 0.0
 
 
 class IsClose(Function):
