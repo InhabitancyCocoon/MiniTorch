@@ -335,8 +335,28 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
         size (int): size of the square
     """
     BLOCK_DIM = 32
-    # TODO: Implement for Task 3.4.
-    raise NotImplementedError("Need to implement for Task 3.4")
+    x = cuda.threadIdx.x
+    y = cuda.threadIdx.y
+    if x >= size or y >= size:
+        return
+    
+    # Define two shared cache within a block and fill it separately.
+    cache_a = cuda.shared.array(shape=(BLOCK_DIM, BLOCK_DIM), dtype=numba.float64)
+    cache_b = cuda.shared.array(shape=(BLOCK_DIM, BLOCK_DIM), dtype=numba.float64)
+    cache_a[x, y] = a[x * size + y]
+    cache_b[x, y] = b[x * size + y]
+
+    # Wait until all the two caches are completely filled.
+    cuda.syncthreads()
+
+    # Each thread is reponsible for a single element in the output depending on the threadIdx.
+    tmp = 0.
+
+    for i in range(size):
+        tmp += cache_a[x, i] * cache_b[i, y]
+    
+    out[x * size + y] = tmp
+    
 
 
 jit_mm_practice = cuda.jit()(_mm_practice)
