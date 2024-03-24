@@ -390,7 +390,7 @@ def _tensor_matrix_multiply(
     tpg_x = cuda.blockDim.x * cuda.gridDim.x
     tpg_y = cuda.blockDim.y * cuda.gridDim.y
     tpg_z = tpg_x * tpg_y
-    out_pos = tpg_z * cuda.blockIdx.z + tpg_x * global_y + global_x
+    out_pos = tpg_z * cuda.blockIdx.z + tpg_x * global_x + global_y
     if out_pos < out_size:
         out_index = cuda.local.array(MAX_DIMS, numba.int32)
         a_index = cuda.local.array(MAX_DIMS, numba.int32)
