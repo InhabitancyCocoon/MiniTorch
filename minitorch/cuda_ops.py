@@ -386,8 +386,7 @@ def _tensor_matrix_multiply(
     b_shape: Shape,
     b_strides: Strides,
 ) -> None:
-    global_x = cuda.blockDim.x * cuda.blockIdx.x + cuda.threadIdx.x
-    global_y = cuda.blockDim.y * cuda.blockIdx.y + cuda.threadIdx.y
+    global_x, global_y = cuda.grid(2)
     tpg_x = cuda.blockDim.x * cuda.gridDim.x
     tpg_y = cuda.blockDim.y * cuda.gridDim.y
     tpg_z = tpg_x * tpg_y
