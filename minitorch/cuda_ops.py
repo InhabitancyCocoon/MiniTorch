@@ -386,47 +386,25 @@ def _tensor_matrix_multiply(
     b_shape: Shape,
     b_strides: Strides,
 ) -> None:
-    """
-    CUDA tensor matrix multiply function.
+    global_x = cuda.blockDim.x * cuda.blockIdx.x + cuda.threadIdx.x
+    global_y = cuda.blockDim.y * cuda.blockIdx.y + cuda.threadIdx.y
+    tpg_x = cuda.blockDim.x * cuda.gridDim.x
+    tpg_y = cuda.blockDim.y * cuda.gridDim.y
+    tpg_z = tpg_x * tpg_y
+    out_pos = tpg_z * cuda.blockIdx.z + tpg_x * global_y + global_x
+    if out_pos < out_size:
+        out_index = cuda.local.array(MAX_DIMS, numba.int32)
+        a_index = cuda.local.array(MAX_DIMS, numba.int32)
+        b_index = cuda.local.array(MAX_DIMS, numba.int32)
+        to_index_by_strides(out_pos, out_strides, out_index)
+        broadcast_index(out_index, out_shape, a_shape, a_index)
+        broadcast_index(out_index, out_shape, b_shape, b_index)
+        for j in range(a_shape[-1]):
+            a_index[len(a_shape) - 1] = j
+            a_pos = index_to_position(a_index, a_strides)
+            b_index[len(b_shape) - 2] = j
+            b_pos = index_to_position(b_index, b_strides)
 
-    Requirements:
-
-    * All data must be first moved to shared memory.
-    * Only read each cell in `a` and `b` once.
-    * Only write to global memory once per kernel.
-
-    Should work for any tensor shapes that broadcast as long as ::
-
-    ```python
-    assert a_shape[-1] == b_shape[-2]
-    ```
-    Returns:
-        None : Fills in `out`
-    """
-    a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
-    b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
-    # Batch dimension - fixed
-    batch = cuda.blockIdx.z
-
-    BLOCK_DIM = 32
-    a_shared = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
-    b_shared = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
-
-    # The final position c[i, j]
-    i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
-    j = cuda.blockIdx.y * cuda.blockDim.y + cuda.threadIdx.y
-
-    # The local position in the block.
-    pi = cuda.threadIdx.x
-    pj = cuda.threadIdx.y
-
-    # Code Plan:
-    # 1) Move across shared dimension by block dim.
-    #    a) Copy into shared memory for a matrix.
-    #    b) Copy into shared memory for b matrix
-    #    c) Compute the dot produce for position c[i, j]
-    # TODO: Implement for Task 3.4.
-    raise NotImplementedError("Need to implement for Task 3.4")
-
+            out[out_pos] += (a_storage[a_pos] * b_storage[b_pos])
 
 tensor_matrix_multiply = cuda.jit(_tensor_matrix_multiply)
