@@ -12,6 +12,7 @@ from .tensor_data import (
     Strides,
     broadcast_index,
     index_to_position,
+    OutIndex,
     to_index_by_strides
 )
 from .tensor_functions import Function
