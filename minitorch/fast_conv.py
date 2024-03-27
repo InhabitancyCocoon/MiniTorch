@@ -12,14 +12,14 @@ from .tensor_data import (
     Strides,
     broadcast_index,
     index_to_position,
-    to_index,
+    to_index_by_strides
 )
 from .tensor_functions import Function
 
 # This code will JIT compile fast versions your tensor_data functions.
 # If you get an error, read the docs for NUMBA as to what is allowed
 # in these functions.
-to_index = njit(inline="always")(to_index)
+to_index_by_strides = njit(inline="always")(to_index_by_strides)
 index_to_position = njit(inline="always")(index_to_position)
 broadcast_index = njit(inline="always")(broadcast_index)
 
@@ -77,11 +77,34 @@ def _tensor_conv1d(
         and in_channels == in_channels_
         and out_channels == out_channels_
     )
-    s1 = input_strides
-    s2 = weight_strides
+    
+    for out_pos in prange(out_size):
+        out_index = np.empty_like(out_shape)
+        to_index_by_strides(out_pos, out_strides, out_index)
+        i, out_channel, j = out_index
 
-    # TODO: Implement for Task 4.1.
-    raise NotImplementedError("Need to implement for Task 4.1")
+        weight_index = np.empty_like(weight_shape)
+        weight_index[0] = out_channel
+        
+        input_index = np.empty_like(input_shape)
+        input_index[0] = i
+    
+        tmp = 0.
+
+        for in_channel in range(in_channels):
+            input_index[1] = in_channel
+            weight_index[1] = in_channel
+
+            for k in range(kw):
+                input_index[2] = j + k if not reverse else j - k
+                if input_index[2] < 0 or input_index[2] >= input_shape[2]:
+                    continue
+                weight_index[2] = k
+                input_pos = index_to_position(input_index, input_strides)
+                weight_pos = index_to_position(weight_index, weight_strides)
+                tmp += input[input_pos] * weight[weight_pos]
+
+        out[out_pos] = tmp
 
 
 tensor_conv1d = njit(parallel=True)(_tensor_conv1d)

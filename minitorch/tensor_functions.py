@@ -211,12 +211,22 @@ class IsClose(Function):
 class Permute(Function):
     @staticmethod
     def forward(ctx: Context, a: Tensor, order: Tensor) -> Tensor:
-        new_shape = tensor([a.shape[int(i)] for i in order._tensor._storage])
-        return View.forward(ctx, a.contiguous(), new_shape)
+        ctx.save_for_backward(a, order)
+        a_storage, a_shape, a_strides = a.tuple()
+        order_storage, _, _ = order.tuple()
+        new_a_shape = tuple([a_shape[int(val)] for val in order_storage])
+        new_a_strides = tuple([a_strides[int(val)] for val in order_storage])
+        return a.make(a_storage, new_a_shape, strides=new_a_strides, backend=a.backend)
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
-        return View.backward(ctx, grad_output)
+        (a, order) = ctx.saved_values
+        grade_output_storage, grad_output_shape, grad_output_strides = grad_output.tuple()
+        order_storage, _, _ = order.tuple()
+        invert_order_map = {int(val): idx for idx, val in enumerate(order_storage)}
+        grad_output_new_shape = tuple([grad_output_shape[invert_order_map[idx]] for idx in range(len(invert_order_map))])
+        grad_output_new_strides = tuple([grad_output_strides[invert_order_map[idx]] for idx in range(len(invert_order_map))])
+        return grad_output.make(grade_output_storage, grad_output_new_shape, strides=grad_output_new_strides, backend=grad_output.backend), 0.0
 
 
 class View(Function):
