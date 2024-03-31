@@ -220,13 +220,13 @@ class Permute(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
-        (a, order) = ctx.saved_values
+        order = ctx.saved_values
         grade_output_storage, grad_output_shape, grad_output_strides = grad_output.tuple()
         order_storage, _, _ = order.tuple()
         invert_order_map = {int(val): idx for idx, val in enumerate(order_storage)}
         grad_output_new_shape = tuple([grad_output_shape[invert_order_map[idx]] for idx in range(len(invert_order_map))])
         grad_output_new_strides = tuple([grad_output_strides[invert_order_map[idx]] for idx in range(len(invert_order_map))])
-        return grad_output.make(grade_output_storage, grad_output_new_shape, strides=grad_output_new_strides, backend=grad_output.backend), 0.0
+        return grad_output.make(grade_output_storage, grad_output_new_shape, strides=grad_output_new_strides, backend=grad_output.backend)
 
 
 class View(Function):
