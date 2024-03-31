@@ -231,14 +231,27 @@ def _tensor_conv2d(
         and out_channels == out_channels_
     )
 
-    s1 = input_strides
-    s2 = weight_strides
-    # inners
-    s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
-    s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
+    for out_pos in prange(out_size):
+        out_index = np.empty_like(out_shape)
+        to_index_by_strides(out_pos, out_strides, out_index)
+        out_batch, out_channel, out_i, out_j = out_index
+        for in_channel in range(in_channels):
+            for weight_i in range(kh):
+                input_i = out_i - weight_i if reverse else out_i + weight_i
+                if input_i >= height or input_i < 0:
+                    continue
 
-    # TODO: Implement for Task 4.2.
-    raise NotImplementedError('Need to implement for Task 4.2')
+                for weight_j in range(kw):
+                    input_j = out_j - weight_j if reverse else out_j + weight_j
+                    if input_j >= width or input_j < 0:
+                        continue
+
+                    weight_idx = out_channel * weight_strides[0] + in_channel * weight_strides[1] + \
+                                 weight_i * weight_strides[2] + weight_j * weight_strides[3]
+                    input_idx = out_batch * input_strides[0] + in_channel * input_strides[1] + \
+                                input_i * input_strides[2] + input_j * input_strides[3]
+                    
+                    out[out_pos] += input[input_idx] * weight[weight_idx]
 
 tensor_conv2d = njit(parallel=True, fastmath=True)(_tensor_conv2d)
 
