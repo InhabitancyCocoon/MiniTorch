@@ -1,8 +1,9 @@
 from mnist import MNIST
-
+import os.path
 import minitorch
 
-mndata = MNIST("project/data/")
+work_dir = os.path.abspath(os.path.curdir)
+mndata = MNIST(os.path.join(work_dir, "data"))
 images, labels = mndata.load_training()
 
 BACKEND = minitorch.TensorBackend(minitorch.FastOps)
@@ -115,7 +116,7 @@ class ImageTrain:
         return self.model.forward(minitorch.tensor([x], backend=BACKEND))
 
     def train(
-        self, data_train, data_val, learning_rate, max_epochs=500, log_fn=default_log_fn
+        self, data_train, data_val, learning_rate, max_epochs=5, log_fn=default_log_fn
     ):
         (X_train, y_train) = data_train
         (X_val, y_val) = data_val
